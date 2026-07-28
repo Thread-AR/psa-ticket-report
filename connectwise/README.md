@@ -7,6 +7,14 @@ consistent customer count), confirming the date filter behaves correctly.
 
 ## 1. Generate read-only API credentials in ConnectWise
 
+**Before you begin**: you'll need **System > Members** access in
+ConnectWise Manage to complete this setup — specifically, permission to
+create API Members and Security Roles. This is admin-level access, not
+something a standard technician login typically has. If you don't see
+**System > Members** in your left-hand menu at all, that's usually a sign
+your own role doesn't include it — ask whoever administers your
+ConnectWise instance to either do this setup or grant you that permission.
+
 You'll need a ConnectWise Manage API member with **read-only access to
 Service Tickets and Companies**. Recommended: create a dedicated API-only
 member rather than reusing a personal login.
@@ -33,24 +41,39 @@ plus your ConnectWise **site URL** (e.g. `https://na.myconnectwise.net`).
 (A Client ID is also required by ConnectWise's API, but this tool already
 has one built in — you don't need to register your own.)
 
+**What's the Company ID?** It's the short identifier for your specific
+ConnectWise Manage instance — not your organization's display/business
+name. You'll recognize it as the value you type into the "Company ID"
+field on your own ConnectWise login screen, before your username and
+password. It's usually a single word with no spaces (e.g. `threadgrowth`).
+If you're not sure, ask whoever normally logs into ConnectWise Manage at
+your organization, or check the login page itself.
+
 ## 2. Run it
 
+If you haven't already, see the root [README.md](../README.md) first for
+installing Python and downloading this tool.
+
+**macOS:**
 ```
-pip install -r ../requirements.txt
+python3 -m pip install -r ../requirements.txt
+python3 cw_ticket_report.py --days 90
+```
+
+**Windows:**
+```
+python -m pip install -r ../requirements.txt
 python cw_ticket_report.py --days 90
 ```
 
-Or set credentials as environment variables ahead of time to skip prompts:
+It'll prompt you for each credential one at a time (Company ID, Public
+Key, Private Key, site URL) — just type or paste each one and press Enter.
 
-```
-export CW_COMPANY_ID="yourcompany"
-export CW_PUBLIC_KEY="..."
-export CW_PRIVATE_KEY="..."
-export CW_SITE_URL="https://na.myconnectwise.net"
-```
-
-(`CW_CLIENT_ID` isn't needed — it's built into the script. Only set it if
-you have a specific reason to override the default.)
+(Advanced/optional: credentials can also be set as environment variables
+ahead of time to skip the prompts — `CW_COMPANY_ID`, `CW_PUBLIC_KEY`,
+`CW_PRIVATE_KEY`, `CW_SITE_URL`. The syntax for this differs by OS/shell,
+so if you're not sure, just skip this and answer the prompts instead.
+`CW_CLIENT_ID` isn't needed either way — it's built into the script.)
 
 ## 3. Output
 

@@ -5,6 +5,13 @@ following the steps below (458 tickets across 12 companies, no errors).
 
 ## 1. Create a read-only Security Level
 
+**Before you begin**: you'll need admin-level access to **Admin > Account
+Settings & Users > Resources/Users (HR)** in Autotask — specifically
+permission to create Security Levels and API Users. A standard technician
+login typically won't have this. If you can't see this area, ask whoever
+administers your Autotask instance to either do this setup or grant you
+access.
+
 Autotask's built-in **"API User (system) (API-only)"** security level
 cannot be edited — it grants the same access as Full Access — but it
 *can be copied*, and copies can be restricted. Do not skip this step and
@@ -49,18 +56,28 @@ Integration Code (Tracking Identifier).
 
 ## 3. Run it
 
+If you haven't already, see the root [README.md](../README.md) first for
+installing Python and downloading this tool.
+
+**macOS:**
 ```
-pip install -r ../requirements.txt
+python3 -m pip install -r ../requirements.txt
+python3 autotask_ticket_report.py --days 90
+```
+
+**Windows:**
+```
+python -m pip install -r ../requirements.txt
 python autotask_ticket_report.py --days 90
 ```
 
-Or set credentials as environment variables ahead of time to skip prompts:
+It'll prompt you for each credential one at a time (Username, Secret,
+Integration Code) — just type or paste each one and press Enter.
 
-```
-export AUTOTASK_USERNAME="..."   # the system-generated key, e.g. abc123xyz@yourinstance.com
-export AUTOTASK_SECRET="..."
-export AUTOTASK_INTEGRATION_CODE="..."
-```
+(Advanced/optional: credentials can also be set as environment variables
+ahead of time to skip the prompts — `AUTOTASK_USERNAME`, `AUTOTASK_SECRET`,
+`AUTOTASK_INTEGRATION_CODE`. The syntax for this differs by OS/shell, so
+if you're not sure, just skip this and answer the prompts instead.)
 
 ## 4. Output
 

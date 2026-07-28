@@ -18,15 +18,35 @@ customer; that logic intentionally lives outside this repo.
 ```bash
 pip install -r requirements.txt
 
-# Run the ConnectWise connector (only one built so far)
-cd connectwise
-python cw_ticket_report.py --days 90
+# Run whichever PSA's connector applies
+cd connectwise   # or autotask, or halo
+python cw_ticket_report.py --days 90   # or autotask_ticket_report.py / halo_ticket_report.py
 ```
 
 There is no test suite, linter, or build step in this repo currently.
 
 Credentials can be passed via environment variables to skip interactive
-prompts (see `connectwise/README.md` for the exact variable names per PSA).
+prompts (see each PSA folder's README for the exact variable names).
+
+## Distribution
+
+Currently distributed as raw `.py` files — a prospect downloads this repo
+as a ZIP from GitHub, installs Python + `pip install -r requirements.txt`,
+and runs the script directly. The root `README.md` has "idiot proof"
+prerequisite instructions (installing Python, the Windows "Add to PATH"
+checkbox gotcha, drag-and-drop `cd` trick) aimed at non-technical
+prospects, not just developers.
+
+**Longer-term direction (not yet started):** package this as a single
+Windows `.exe` and a single macOS `.pkg`, each bundling all three PSA
+connectors behind a minimal GUI (replacing the current `input()`/`getpass()`
+terminal prompts), built via PyInstaller and distributed through public
+GitHub Releases. This is blocked on a decision about code-signing
+certificates (Windows code-signing cert + Apple Developer Program
+membership) — without signing, the packaged executables will trigger
+Windows SmartScreen / macOS Gatekeeper warnings, which undercuts the
+tool's "small, transparent, trustworthy" pitch to security-conscious MSP
+prospects. Revisit packaging once that cost/ownership decision is made.
 
 ## Architecture
 

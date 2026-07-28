@@ -21,21 +21,39 @@ writes output only to their local disk.
 | Autotask           | ✅ Built     |
 | HaloPSA            | ✅ Built     |
 
+## Permissions you'll need
+
+Setting up API credentials requires **admin-level access to your PSA
+instance** — specifically, the ability to create a new API user/agent,
+create or assign a security role/level, and generate API keys or a
+secret. This is usually not something a standard technician-level login
+can do. If you don't have this access yourself, you'll need your PSA
+administrator (or someone at your organization who has that access) to
+either do this setup or grant it to you temporarily.
+
+Each PSA's README documents the exact admin screens and permissions
+needed:
+- [ConnectWise Manage](connectwise/README.md) — System > Members, Security Roles
+- [Autotask](autotask/README.md) — Admin > Resources/Users (HR), Security Levels
+- [HaloPSA](halo/README.md) — Configuration > Integrations, Teams > Roles/Agents
+
 ## Repo structure
 
 ```
-psa-license-report/
+psa-ticket-report/
 ├── shared/
-│   └── report_utils.py       # aggregation, anonymization, CSV output — shared by all connectors
+│   └── report_utils.py            # aggregation, anonymization, CSV output — shared by all connectors
 ├── connectwise/
 │   ├── cw_ticket_report.py
 │   └── README.md
 ├── autotask/
-│   └── README.md              # scoped, not yet built
+│   ├── autotask_ticket_report.py
+│   └── README.md
 ├── halo/
-│   └── README.md               # scoped, not yet built
+│   ├── halo_ticket_report.py
+│   └── README.md
 ├── requirements.txt
-└── README.md                   # you are here
+└── README.md                       # you are here
 ```
 
 ## How the output works
@@ -47,15 +65,76 @@ Every connector writes two files, on purpose kept separate:
 2. **`local_only_customer_mapping.csv`** — the real names behind each label.
    Stays on the prospect's machine. Never sent anywhere.
 
+## Before you start: install Python
+
+You only need to do this once. If you're not sure whether you already have
+Python, open a terminal (see below for how) and type `python3 --version`
+(macOS) or `python --version` (Windows). If you see a version number of
+3.9 or higher, skip to "Download this tool."
+
+**How to open a terminal:**
+- **Windows**: Click the Start menu, type `Command Prompt` (or
+  `PowerShell`), and press Enter.
+- **macOS**: Open Spotlight (⌘+Space), type `Terminal`, and press Enter.
+
+**If Python isn't installed:**
+1. Go to [python.org/downloads](https://www.python.org/downloads/) and
+   download the latest version for your operating system.
+2. Run the installer.
+   - **Windows only — do not skip this**: on the very first installer
+     screen, check the box at the bottom that says **"Add python.exe to
+     PATH"** before clicking Install. This is the single most common
+     thing people miss, and without it, none of the commands below will
+     work.
+   - **macOS**: just run through the installer with the default options.
+3. Close and reopen your terminal window (so it picks up the new
+   installation), then confirm it worked:
+   - **Windows**: `python --version`
+   - **macOS**: `python3 --version`
+
+   You should see something like `Python 3.12.x`. If you instead see an
+   error like `'python' is not recognized` or `command not found`, the
+   install didn't complete correctly or (on Windows) the PATH box wasn't
+   checked — try reinstalling.
+
+## Download this tool
+
+1. Go to this repository's page on GitHub.
+2. Click the green **Code** button, then **Download ZIP**.
+3. Find the downloaded ZIP file (usually in your Downloads folder) and
+   extract/unzip it. Remember where you extracted it — you'll need to
+   navigate there in the terminal next.
+
 ## Getting started (for whichever PSA you use)
 
-See the README inside that PSA's folder (e.g. `connectwise/README.md`) for
-credential setup and run instructions.
+1. Open a terminal (see above) and navigate into the folder you just
+   extracted. The easiest way: type `cd ` (with a trailing space), then
+   **drag the extracted folder** from Finder/File Explorer directly into
+   the terminal window — it will fill in the correct path for you — then
+   press Enter.
+2. Install the one shared dependency this tool needs:
+   - **Windows**: `python -m pip install -r requirements.txt`
+   - **macOS**: `python3 -m pip install -r requirements.txt`
 
-## Contributing / building the next connector
+   (A message mentioning "Defaulting to user installation" is normal, not
+   an error. On macOS you may also see a `NotOpenSSLWarning` — that's a
+   harmless warning about the system's built-in SSL library and can be
+   ignored.)
+3. Navigate into your PSA's folder the same drag-and-drop way (e.g.
+   `cd ` then drag the `connectwise` folder in), and follow the README
+   there (e.g. `connectwise/README.md`) for credential setup and exact
+   run instructions.
 
-If you're picking up Autotask or Halo, read that folder's README first —
-it scopes out the auth flow and what "done" looks like. The only contract
-with `shared/report_utils.py` is that your connector normalizes tickets
-into: `{"customer_id": ..., "customer_name": ...}` — one dict per ticket.
-Everything else (aggregation, anonymization, CSV writing) is already handled.
+### If something goes wrong
+
+- **`'python' is not recognized` / `python3: command not found`** — Python
+  isn't installed, or (Windows) wasn't added to PATH. Reinstall following
+  the steps above.
+- **`No module named requests`** (or similar) — you skipped or need to
+  re-run the `pip install -r requirements.txt` step, or you're running
+  the script from a different terminal window than the one where you
+  installed it.
+- **`python: command not found` but `python3` works, or vice versa** —
+  some systems only recognize one or the other; just use whichever one
+  responded with a version number in the steps above.
+

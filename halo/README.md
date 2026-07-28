@@ -7,6 +7,12 @@ behaves correctly).
 
 ## 1. Create a read-only API application in HaloPSA
 
+**Before you begin**: you'll need admin-level access to **Configuration**
+in HaloPSA — specifically to **Integrations > HaloPSA API** and **Teams >
+Roles/Agents** — to complete this setup. A standard agent login typically
+won't have this. If you can't see these areas, ask whoever administers
+your HaloPSA instance to either do this setup or grant you access.
+
 Suggested naming (makes it obvious to any admin later what this is and
 that it's safe to remove once the report's generated):
 
@@ -44,22 +50,31 @@ even if the other is fully configured.
 
 ## 2. Run it
 
+If you haven't already, see the root [README.md](../README.md) first for
+installing Python and downloading this tool.
+
+**macOS:**
 ```
-pip install -r ../requirements.txt
+python3 -m pip install -r ../requirements.txt
+python3 halo_ticket_report.py --days 90
+```
+
+**Windows:**
+```
+python -m pip install -r ../requirements.txt
 python halo_ticket_report.py --days 90
 ```
 
-Or set credentials as environment variables ahead of time to skip prompts:
+It'll prompt you for each credential one at a time (base URL, Client ID,
+Client Secret) — just type or paste each one and press Enter.
 
-```
-export HALO_BASE_URL="https://yourinstance.halopsa.com"
-export HALO_CLIENT_ID="..."
-export HALO_CLIENT_SECRET="..."
-```
-
-`HALO_TENANT` and `HALO_SCOPE` are optional — only set `HALO_TENANT` if your
-instance uses a shared multi-tenant auth server (uncommon for self-hosted or
-single-tenant cloud instances). `HALO_SCOPE` defaults to `all`.
+(Advanced/optional: credentials can also be set as environment variables
+ahead of time to skip the prompts — `HALO_BASE_URL`, `HALO_CLIENT_ID`,
+`HALO_CLIENT_SECRET`. The syntax for this differs by OS/shell, so if
+you're not sure, just skip this and answer the prompts instead.
+`HALO_TENANT` and `HALO_SCOPE` are additional optional overrides — only
+set `HALO_TENANT` if your instance uses a shared multi-tenant auth server
+(uncommon), and `HALO_SCOPE` defaults to `all`.)
 
 ## 3. Output
 
