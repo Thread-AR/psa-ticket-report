@@ -32,7 +32,7 @@ prompts (see each PSA folder's README for the exact variable names).
 
 Currently distributed as raw `.py` files — a prospect downloads this repo
 as a ZIP from GitHub, installs Python + `pip install -r requirements.txt`,
-and runs the script directly. The root `README.md` has "idiot proof"
+and runs the script directly. The root `README.md` has beginner-friendly
 prerequisite instructions (installing Python, the Windows "Add to PATH"
 checkbox gotcha, drag-and-drop `cd` trick) aimed at non-technical
 prospects, not just developers.
