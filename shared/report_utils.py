@@ -59,7 +59,7 @@ def write_report(rows, days, psa_name, out_path="thread_ticket_report.csv"):
     math, nothing beyond raw volume. That calculation happens separately,
     internally, by the Thread team reviewing this file.
     """
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
+    with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow([f"Thread Ticket Volume Report — {psa_name} — trailing {days} days"])
         writer.writerow([])
@@ -74,7 +74,7 @@ def write_local_mapping(mapping, out_path="local_only_customer_mapping.csv"):
     Writes the real-name mapping. This file stays on the prospect's
     machine — it is never meant to be attached to anything sent externally.
     """
-    with open(out_path, "w", newline="", encoding="utf-8") as f:
+    with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(["customer_label", "real_name"])
         for m in mapping:

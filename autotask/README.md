@@ -1,27 +1,69 @@
-# Autotask connector — NOT YET BUILT
+# Autotask connector
 
-This folder will hold the Autotask (Datto) PSA connector, mirroring the
-structure of `connectwise/`.
+Validated against a live Autotask instance — worked on the first run
+following the steps below (458 tickets across 12 companies, no errors).
 
-## What needs to happen here
+## 1. Create a read-only Security Level
 
-1. Authenticate against the Autotask REST API. Autotask uses:
-   - An API Integration Code
-   - A Username + Secret (API user, not a human login)
-   - A "zone" lookup step first — Autotask REST API base URLs are
-     tenant-specific and returned by a zone-detection endpoint before
-     you can query anything else
-2. Query the `Tickets` entity, filtered by `CreateDate` within the
-   lookback window
-3. Join each ticket to its `Companies` (Account) record to get the
-   customer name
-4. Normalize into the same shape the shared module expects:
-   `{"customer_id": ..., "customer_name": ...}` per ticket
-5. Reuse `shared/report_utils.py` for aggregation, anonymization, and
-   CSV output — do not duplicate that logic here
+Autotask's built-in **"API User (system) (API-only)"** security level
+cannot be edited — it grants the same access as Full Access — but it
+*can be copied*, and copies can be restricted. Do not skip this step and
+assign the default level directly to the API user in step 2.
 
-Reference: https://autotask.net/help/DeveloperHelp/Content/APIs/REST/REST_API_Home.htm
+1. Go to **Admin > Account Settings & Users > Resources/Users (HR) >
+   Security Levels**.
+2. Find **"API User (system) (API-only)"**, and copy it.
+3. Rename the copy to **`Thread Ticket Report - Read Only`**.
+4. Edit the copy: set **Tickets** and **Companies** to **View only**
+   (uncheck Add/Edit/Delete), and remove access to every other
+   module/feature the copied level included by default.
 
-When built, this file should be replaced with the same style of README
-as `connectwise/README.md` — credential setup steps, run instructions,
-what gets written to disk.
+## 2. Create a dedicated API user
+
+Suggested naming (makes it obvious to any admin later what this is and
+that it's safe to remove once the report's generated):
+
+- **Resource Name**: `Thread Ticket Report (Read-Only)`
+- **Email Address** (contact info field, not the API username): `thread-ticket-report-api@<theirdomain>`
+- **Security Level**: `Thread Ticket Report - Read Only` (the one from step 1)
+
+1. Go to **Admin > Resources (Users)**, click the dropdown next to
+   **+ New**, and choose **New API User**.
+2. In the **General** pane: enter a First/Last Name, the Email Address
+   above, and set **Security Level** to the custom role from step 1 —
+   not the default "API User (system) (API-only)".
+3. In the **Security** pane:
+   - Click **Generate Key** — this produces the **Username**. It's
+     system-generated, not something you choose yourself.
+   - Click **Generate Secret** — this is the **Secret** (API key/password).
+     It's shown only once, so copy it immediately.
+4. Still on the Security pane, set the **API Tracking Identifier** to
+   **Custom (Internal Integration)** (self-service, no Datto/Autotask
+   approval needed — the "Vendor" identifier type is for published
+   marketplace integrations and doesn't apply here). Give it an internal
+   name and tracking identifier, e.g. `Thread Ticket Report`.
+5. **Save & Close.**
+
+You'll end up with three values: Username (Key), Secret, and API
+Integration Code (Tracking Identifier).
+
+## 3. Run it
+
+```
+pip install -r ../requirements.txt
+python autotask_ticket_report.py --days 90
+```
+
+Or set credentials as environment variables ahead of time to skip prompts:
+
+```
+export AUTOTASK_USERNAME="..."   # the system-generated key, e.g. abc123xyz@yourinstance.com
+export AUTOTASK_SECRET="..."
+export AUTOTASK_INTEGRATION_CODE="..."
+```
+
+## 4. Output
+
+- `thread_ticket_report.csv` — anonymized, safe to share with your Thread rep
+- `local_only_customer_mapping.csv` — real customer names behind each label.
+  **Keep this. Do not share it.**

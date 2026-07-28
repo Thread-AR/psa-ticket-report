@@ -1,0 +1,14 @@
+# Generated report output — local test-run artifacts, never meant to be
+# committed. thread_ticket_report.csv is meant to be shared with a Thread
+# rep by the prospect directly, not stored in this repo, and
+# local_only_customer_mapping.csv must never leave the prospect's machine
+# at all. See CLAUDE.md.
+thread_ticket_report.csv
+local_only_customer_mapping.csv
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store

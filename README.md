@@ -18,8 +18,8 @@ writes output only to their local disk.
 | PSA                | Status       |
 |--------------------|--------------|
 | ConnectWise Manage | ✅ Built     |
-| Autotask           | 🚧 Planned   |
-| HaloPSA            | 🚧 Planned   |
+| Autotask           | ✅ Built     |
+| HaloPSA            | ✅ Built     |
 
 ## Repo structure
 

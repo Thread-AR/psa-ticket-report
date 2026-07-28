@@ -30,11 +30,20 @@ from shared.report_utils import aggregate_by_customer, anonymize, write_report, 
 # Config / credential handling
 # ---------------------------------------------------------------------------
 
+# Thread's own Client ID, registered once in the ConnectWise Developer
+# Portal. This identifies the *software* making the API call, not any
+# particular prospect's instance, so every prospect running this script
+# shares the same value — no per-prospect Developer Portal registration
+# needed. Override via CW_CLIENT_ID only if testing against a differently
+# registered integration.
+DEFAULT_CLIENT_ID = "86d92ab9-1329-4360-bade-82d11c909eb2"
+
+
 def load_credentials():
     company_id = os.environ.get("CW_COMPANY_ID") or input("ConnectWise Company ID: ").strip()
     public_key = os.environ.get("CW_PUBLIC_KEY") or input("ConnectWise API Public Key: ").strip()
     private_key = os.environ.get("CW_PRIVATE_KEY") or getpass.getpass("ConnectWise API Private Key: ").strip()
-    client_id = os.environ.get("CW_CLIENT_ID") or input("ConnectWise Client ID (from developer portal): ").strip()
+    client_id = os.environ.get("CW_CLIENT_ID", DEFAULT_CLIENT_ID)
     site_url = os.environ.get("CW_SITE_URL") or input(
         "ConnectWise site base URL (e.g. https://na.myconnectwise.net): "
     ).strip().rstrip("/")
