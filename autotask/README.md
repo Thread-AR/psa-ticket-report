@@ -3,6 +3,8 @@
 Validated against a live Autotask instance — worked on the first run
 following the steps below (458 tickets across 12 companies, no errors).
 
+Prefer a point-and-click experience over a terminal? See [gui/README.md](../gui/README.md) — the desktop app walks you through this same setup with in-app instructions and field-by-field help.
+
 ## 1. Create a read-only Security Level
 
 **Before you begin**: you'll need admin-level access to **Admin > Account

@@ -1,1 +1,14 @@
 requests>=2.31.0
+pywebview>=5.0
+
+# macOS only: pywebview pulls in pyobjc. pyobjc-core 12.0 dropped prebuilt
+# wheels for Python 3.9 (sdist-only there), and building it from source
+# fails on current Xcode Command Line Tools' clang (an unrelated
+# warning-as-error in Apple's simd headers). Capping below 12 keeps
+# Python 3.9 on pyobjc-core 11.1, which has a working prebuilt wheel.
+# Python 3.10+ isn't affected by this cap and can use newer pyobjc.
+pyobjc-core<12; python_version<"3.10" and sys_platform == "darwin"
+pyobjc-framework-Cocoa<12; python_version<"3.10" and sys_platform == "darwin"
+pyobjc-framework-Quartz<12; python_version<"3.10" and sys_platform == "darwin"
+pyobjc-framework-WebKit<12; python_version<"3.10" and sys_platform == "darwin"
+pyobjc-framework-security<12; python_version<"3.10" and sys_platform == "darwin"

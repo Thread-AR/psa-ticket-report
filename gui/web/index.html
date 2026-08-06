@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thread Ticket Volume Report</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <img class="logo" src="assets/thread-logo.png" alt="thread">
+  <div class="header-subtitle">Ticket Volume Report</div>
+</header>
+
+<div class="app-shell">
+  <nav class="stepper" id="stepper"></nav>
+
+  <main class="content">
+
+    <section class="screen" data-screen="psa" >
+      <h1>Which PSA do you use?</h1>
+      <p class="lede">This runs entirely on your machine — your credentials and ticket data never leave this computer.</p>
+      <div class="psa-cards" id="psaCards"></div>
+    </section>
+
+    <section class="screen" data-screen="setup">
+      <h1>Set up API access in <span id="setupPsaLabel"></span></h1>
+      <p class="lede">Do this once in your PSA before entering credentials here.</p>
+      <div class="admin-note" id="setupAdminNote"></div>
+      <ol class="setup-steps" id="setupSteps"></ol>
+      <p class="setup-result" id="setupResultNote"></p>
+      <div class="nav-row">
+        <button class="btn btn-ghost" data-action="back-to-psa">Back</button>
+        <button class="btn btn-primary" data-action="to-credentials">I've done this — continue</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="credentials">
+      <h1>Connect to <span id="credsPsaLabel"></span></h1>
+      <p class="lede">These stay in memory for this session only. Nothing is written to disk.</p>
+      <form id="credsForm" class="form"></form>
+      <div class="nav-row">
+        <button class="btn btn-ghost" data-action="back-to-setup">Back</button>
+        <button class="btn btn-primary" id="credsContinue" disabled>Continue</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="options">
+      <h1>Report options</h1>
+      <div class="form">
+        <label class="field">
+          <span class="field-label">Lookback window (days)</span>
+          <input type="number" id="daysInput" min="1" max="3650" value="90">
+        </label>
+
+        <div class="field">
+          <span class="field-label">Exclude any <span id="boardTermPlural">boards</span>?</span>
+          <p class="field-help">Skip boards that only receive automated alerts, not real customer tickets.</p>
+          <button class="btn btn-secondary" id="loadBoardsBtn" type="button">Load <span id="boardTermPlural2">boards</span></button>
+          <div id="boardsStatus" class="boards-status"></div>
+          <div id="boardsList" class="boards-list"></div>
+          <label class="manual-toggle">
+            <input type="checkbox" id="manualBoardsToggle">
+            <span>Enter names/IDs manually instead</span>
+          </label>
+          <input type="text" id="manualBoardsInput" class="text-input" placeholder="e.g. Alerts, 42, Automated Monitoring" disabled>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn btn-ghost" data-action="back-to-credentials">Back</button>
+        <button class="btn btn-primary" data-action="to-output">Continue</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="output">
+      <h1>Where should the report be saved?</h1>
+      <p class="lede">Two files will be created there: an anonymized report to share with Thread, and a local-only name key you keep to yourself.</p>
+      <div class="output-picker">
+        <div class="output-path" id="outputPathDisplay">No folder selected</div>
+        <button class="btn btn-secondary" id="pickFolderBtn" type="button">Choose folder&hellip;</button>
+      </div>
+      <div class="nav-row">
+        <button class="btn btn-ghost" data-action="back-to-options">Back</button>
+        <button class="btn btn-primary" id="outputContinue" disabled>Continue</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="review">
+      <h1>Review &amp; run</h1>
+      <div class="review-card" id="reviewCard"></div>
+      <div class="nav-row">
+        <button class="btn btn-ghost" data-action="back-to-output">Back</button>
+        <button class="btn btn-primary" id="generateBtn" type="button">Generate report</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="run">
+      <h1 id="runTitle">Generating your report&hellip;</h1>
+      <p class="lede">This can take a few minutes for a large ticket volume.</p>
+      <pre class="log-panel" id="logPanel"></pre>
+    </section>
+
+    <section class="screen" data-screen="done">
+      <div id="doneSuccess">
+        <h1>Done!</h1>
+        <p class="lede">Two files were created:</p>
+        <div class="result-card">
+          <div class="result-row">
+            <div class="result-label">Share with your Thread rep</div>
+            <div class="result-path" id="reportPathDisplay"></div>
+          </div>
+          <div class="result-row">
+            <div class="result-label">Keep this one to yourself — never share it</div>
+            <div class="result-path" id="mappingPathDisplay"></div>
+          </div>
+        </div>
+        <div class="nav-row">
+          <button class="btn btn-secondary" id="openFolderBtn" type="button">Open folder</button>
+          <button class="btn btn-primary" data-action="start-over">Start another report</button>
+        </div>
+      </div>
+      <div id="doneError" style="display:none;">
+        <h1>Something went wrong</h1>
+        <p class="lede" id="errorMessage"></p>
+        <div class="nav-row">
+          <button class="btn btn-ghost" data-action="back-to-review">Back</button>
+          <button class="btn btn-primary" data-action="start-over">Start over</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

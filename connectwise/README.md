@@ -5,6 +5,8 @@ no auth errors, and ticket/customer counts scaled sensibly across multiple
 lookback windows (e.g. 187 tickets over 30 days vs. 413 over 90 days,
 consistent customer count), confirming the date filter behaves correctly.
 
+Prefer a point-and-click experience over a terminal? See [gui/README.md](../gui/README.md) — the desktop app walks you through this same setup with in-app instructions and field-by-field help.
+
 ## 1. Generate read-only API credentials in ConnectWise
 
 **Before you begin**: you'll need **System > Members** access in

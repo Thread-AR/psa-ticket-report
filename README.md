@@ -21,6 +21,31 @@ writes output only to their local disk.
 | Autotask           | ✅ Built     |
 | HaloPSA            | ✅ Built     |
 
+## Two ways to run this
+
+**Desktop app (recommended)** — a point-and-click wizard: pick your PSA, it
+walks you through the exact admin screens to set up API credentials, helps
+you fill in each field, then runs everything and shows you where the output
+landed. No terminal commands beyond the one-time setup below.
+
+<p>
+  <img src="gui/screenshots/01-select-psa.png" alt="Select your PSA" width="32%">
+  <img src="gui/screenshots/02-setup-instructions.png" alt="Guided credential setup instructions" width="32%">
+  <img src="gui/screenshots/03-credentials.png" alt="Credentials form with inline help" width="32%">
+</p>
+
+See "Running the desktop app" below. (More screenshots of the full flow are
+in [gui/README.md](gui/README.md).)
+
+**Command line** — the original per-PSA scripts, run directly from a
+terminal. Useful if you're already comfortable there, or want to pass
+credentials via environment variables. See "Running from the command line"
+below.
+
+Both do exactly the same thing under the hood and produce the same two
+output files — the desktop app is just a friendlier way to run the same
+connector script.
+
 ## Permissions you'll need
 
 Setting up API credentials requires **admin-level access to your PSA
@@ -51,6 +76,13 @@ psa-ticket-report/
 │   └── README.md
 ├── halo/
 │   ├── halo_ticket_report.py
+│   └── README.md
+├── gui/
+│   ├── app.py                      # desktop app entry point — python gui/app.py
+│   ├── psa_config.py               # per-PSA setup instructions, credential fields, help text
+│   ├── runner.py                   # runs a connector script as a subprocess
+│   ├── web/                        # HTML/CSS/JS wizard UI
+│   ├── screenshots/                # docs screenshots (this README, gui/README.md)
 │   └── README.md
 ├── requirements.txt
 └── README.md                       # you are here
@@ -105,14 +137,14 @@ Python, open a terminal (see below for how) and type `python3 --version`
    extract/unzip it. Remember where you extracted it — you'll need to
    navigate there in the terminal next.
 
-## Getting started (for whichever PSA you use)
+## Running the desktop app
 
 1. Open a terminal (see above) and navigate into the folder you just
    extracted. The easiest way: type `cd ` (with a trailing space), then
    **drag the extracted folder** from Finder/File Explorer directly into
    the terminal window — it will fill in the correct path for you — then
    press Enter.
-2. Install the one shared dependency this tool needs:
+2. Install the dependencies this tool needs:
    - **Windows**: `python -m pip install -r requirements.txt`
    - **macOS**: `python3 -m pip install -r requirements.txt`
 
@@ -120,7 +152,29 @@ Python, open a terminal (see below for how) and type `python3 --version`
    an error. On macOS you may also see a `NotOpenSSLWarning` — that's a
    harmless warning about the system's built-in SSL library and can be
    ignored.)
-3. Navigate into your PSA's folder the same drag-and-drop way (e.g.
+3. Launch the app:
+   - **Windows**: `python gui\app.py`
+   - **macOS**: `python3 gui/app.py`
+4. A window opens with the wizard: pick your PSA, follow the setup steps
+   it shows you, enter your credentials (with help text for every field),
+   set your lookback window and any board exclusions, choose where to
+   save the output, then generate the report. See
+   [gui/README.md](gui/README.md) for a full walkthrough with screenshots.
+
+This has been tested on macOS. It should also work on Windows (the
+underlying `pywebview` library uses the Edge WebView2 runtime that ships
+with modern Windows), but that hasn't been separately verified in this
+repo yet — if you hit issues on Windows, the command-line path below is a
+reliable fallback.
+
+## Running from the command line
+
+If you'd rather not use the desktop app — or it doesn't work on your
+machine — each PSA's script can be run directly from a terminal, the same
+way the desktop app runs it internally:
+
+1. Follow steps 1–2 above (extract the ZIP, `pip install -r requirements.txt`).
+2. Navigate into your PSA's folder the same drag-and-drop way (e.g.
    `cd ` then drag the `connectwise` folder in), and follow the README
    there (e.g. `connectwise/README.md`) for credential setup and exact
    run instructions.
@@ -137,4 +191,8 @@ Python, open a terminal (see below for how) and type `python3 --version`
 - **`python: command not found` but `python3` works, or vice versa** —
   some systems only recognize one or the other; just use whichever one
   responded with a version number in the steps above.
+- **Desktop app won't launch / errors mentioning `webview` or `pyobjc`** —
+  re-run the `pip install -r requirements.txt` step; if it still fails,
+  fall back to the command-line instructions above and let your Thread
+  contact know what error you saw.
 

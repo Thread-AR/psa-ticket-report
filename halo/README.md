@@ -5,6 +5,8 @@ is the exact minimal configuration confirmed to work (record counts were
 cross-checked across multiple lookback windows to confirm the date filter
 behaves correctly).
 
+Prefer a point-and-click experience over a terminal? See [gui/README.md](../gui/README.md) — the desktop app walks you through this same setup with in-app instructions and field-by-field help.
+
 ## 1. Create a read-only API application in HaloPSA
 
 **Before you begin**: you'll need admin-level access to **Configuration**

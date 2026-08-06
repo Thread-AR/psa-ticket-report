@@ -37,16 +37,21 @@ prerequisite instructions (installing Python, the Windows "Add to PATH"
 checkbox gotcha, drag-and-drop `cd` trick) aimed at non-technical
 prospects, not just developers.
 
-**Longer-term direction (not yet started):** package this as a single
-Windows `.exe` and a single macOS `.pkg`, each bundling all three PSA
-connectors behind a minimal GUI (replacing the current `input()`/`getpass()`
-terminal prompts), built via PyInstaller and distributed through public
-GitHub Releases. This is blocked on a decision about code-signing
-certificates (Windows code-signing cert + Apple Developer Program
-membership) — without signing, the packaged executables will trigger
-Windows SmartScreen / macOS Gatekeeper warnings, which undercuts the
-tool's "small, transparent, trustworthy" pitch to security-conscious MSP
-prospects. Revisit packaging once that cost/ownership decision is made.
+A `gui/` desktop app now exists (see "GUI (desktop app)" below) as a
+point-and-click wrapper around the same connector scripts, replacing the
+`input()`/`getpass()` terminal prompts for anyone who'd rather not use a
+terminal at all. It's still distributed as raw `.py` files today (run via
+`python gui/app.py`) — the CLI scripts remain fully independent and are
+still the recommended fallback if the GUI doesn't work on a given machine.
+
+**Longer-term direction (not yet started):** package the GUI as a single
+Windows `.exe` and a single macOS `.pkg` via PyInstaller, distributed
+through public GitHub Releases. This is blocked on a decision about
+code-signing certificates (Windows code-signing cert + Apple Developer
+Program membership) — without signing, the packaged executables will
+trigger Windows SmartScreen / macOS Gatekeeper warnings, which undercuts
+the tool's "small, transparent, trustworthy" pitch to security-conscious
+MSP prospects. Revisit packaging once that cost/ownership decision is made.
 
 ## Architecture
 
@@ -159,6 +164,72 @@ preserved in any new connector or refactor:
 Do not add fields to `thread_ticket_report.csv` that could de-anonymize a
 customer (real names, identifiers, contact info) — that data belongs only in
 the local mapping file.
+
+## GUI (desktop app)
+
+`gui/` is a pywebview-based wizard (HTML/CSS/JS front end in `gui/web/`,
+Python backend) that wraps the three connector scripts unmodified — it is
+purely additive and never changes `connectwise/`, `autotask/`, `halo/`, or
+`shared/report_utils.py`. Chosen over Tkinter/PySide because Thread's brand
+guidelines (colors, fonts, 24px grid, rounded corners) are far easier to
+hit precisely with real CSS than with a native-widget toolkit, and
+pywebview still packages cleanly with PyInstaller for the eventual
+`.exe`/`.pkg` (see "Distribution" above).
+
+- **`gui/psa_config.py`** is the single source of truth per PSA: script
+  path, credential field definitions (with per-field `help` text), board
+  terminology ("Service Board"/"Queue"/"Team"), and the `setup` block
+  (admin-access note + numbered credential-setup steps) shown in the
+  wizard's Setup screen before the Credentials screen. This content is a
+  condensed copy of each PSA's own README, not a shared source — if a
+  README's permission requirements change, `psa_config.py` needs a matching
+  manual edit; it won't pick up the change automatically.
+- **`gui/runner.py`** launches a connector script as a subprocess rather
+  than importing its functions directly, specifically so `load_credentials()`
+  and `main()` in the connector scripts never need to be touched. Two
+  details are load-bearing, not stylistic:
+  - `stdin=subprocess.DEVNULL` on every launch — without it, a missing or
+    blank credential falls through to the connector's `input()`/`getpass()`
+    and the subprocess hangs forever with no error, since nothing is
+    connected to write to that pipe.
+  - `stderr=subprocess.STDOUT` — keeping them as separate pipes risks a
+    classic deadlock if a traceback fills the unread stderr pipe's OS
+    buffer, and it ensures errors actually show up in the GUI's log panel.
+  - Output location is controlled purely via the subprocess's `cwd`
+    (matching the user-chosen output folder) — `shared/report_utils.py`'s
+    `write_report`/`write_local_mapping` default to CWD-relative filenames
+    and no connector's `main()` overrides that, so this needed no changes
+    to connector code.
+- **`gui/app.py`** exposes an `Api` class to the JS front end via
+  pywebview's `js_api`. Each JS→Python call runs in its own thread
+  (pywebview's default behavior), which is what lets `run_report()` block
+  for the subprocess's whole lifetime while still calling
+  `window.evaluate_js()` per output line to stream logs live. A
+  `threading.Lock`-guarded busy check rejects a second concurrent
+  `run_report()` call (e.g. a double-click), and `window.events.closing`
+  terminates any in-flight subprocess so closing the window doesn't leave
+  an orphaned PSA-fetching process running.
+- **Credentials are never persisted** — held in memory for the GUI
+  process's lifetime only, passed to each subprocess via that call's env
+  dict (a copy of `os.environ`, not a mutation of the parent process's
+  environment).
+- **`requirements.txt`** pins `pyobjc-core`/`pyobjc-framework-*` below
+  version 12, but only for `python_version<"3.10" and sys_platform ==
+  "darwin"`. Without this, a stock macOS Python 3.9 (e.g. the one bundled
+  with Xcode Command Line Tools) fails to install pywebview: pyobjc 12.0
+  has no prebuilt wheel for Python 3.9, and building it from source fails
+  on current Xcode CLT clang due to an unrelated warning-as-error in
+  Apple's SIMD headers. Version 11.1 has a working cp39 wheel. Python 3.10+
+  and non-macOS platforms are unaffected by this pin and resolve normally.
+- **`gui/screenshots/`** holds the PNGs used in this README and the root
+  `README.md`. They were generated by driving the actual `gui/web/`
+  files headlessly with Playwright (`channel="chrome"`, using the
+  system-installed Chrome rather than downloading a separate browser) and
+  a mocked `window.pywebview.api` seeded from the real `psa_config.py`
+  output — not hand-captured from a running app, since a real pywebview
+  window can't be screenshotted from a sandboxed/headless environment
+  (no macOS Screen Recording permission). Regenerate them the same way if
+  the wizard's copy or styling changes.
 
 ## Known issues
 
