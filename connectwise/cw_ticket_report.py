@@ -23,7 +23,14 @@ import requests
 # Allow running this script directly from the connectwise/ folder while
 # still reaching shared/report_utils.py one level up.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from shared.report_utils import aggregate_by_customer, anonymize, write_report, write_local_mapping
+from shared.report_utils import (
+    aggregate_by_customer,
+    anonymize,
+    write_report,
+    write_local_mapping,
+    parse_board_exclusions,
+    is_board_excluded,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -76,19 +83,44 @@ def build_auth_header(creds):
 # API calls
 # ---------------------------------------------------------------------------
 
-def fetch_tickets(creds, start_date, page_size=1000):
+def fetch_boards(creds):
+    """
+    Returns every ConnectWise Service Board as [{"id": ..., "name": ...}, ...].
+    Used by --list-boards to help a prospect find the board names/IDs to
+    pass to --exclude-boards (e.g. an "Automated Alerts" board).
+    """
+    headers = build_auth_header(creds)
+    base = f"{creds['site_url']}/v4_6_release/apis/3.0/service/boards"
+    resp = requests.get(base, headers=headers, params={"fields": "id,name", "pageSize": 1000}, timeout=30)
+
+    if resp.status_code == 403:
+        raise SystemExit(
+            "Access forbidden (403) fetching boards. This requires a separate "
+            "permission from ticket reading: System > Table Setup (Inquire = All), "
+            "with 'Service / Service Board' checked under that permission's "
+            "Customize > Allow access to these columns. See connectwise/README.md."
+        )
+    resp.raise_for_status()
+    return [{"id": b["id"], "name": b.get("name")} for b in resp.json()]
+
+
+def fetch_tickets(creds, start_date, excluded_boards=None, page_size=1000):
     """
     Pulls tickets created on/after start_date, paginating through results,
     and normalizes each into {"customer_id": ..., "customer_name": ...}
-    for the shared aggregation logic.
+    for the shared aggregation logic. Tickets whose board matches
+    excluded_boards (by ID or name) are dropped before normalization.
+
+    Returns (normalized_tickets, excluded_count).
     """
     headers = build_auth_header(creds)
     base = f"{creds['site_url']}/v4_6_release/apis/3.0/service/tickets"
 
     conditions = f"dateEntered>=[{start_date.strftime('%Y-%m-%dT%H:%M:%SZ')}]"
-    fields = "id,company/id,company/identifier,company/name,dateEntered"
+    fields = "id,company/id,company/identifier,company/name,board/id,board/name,dateEntered"
 
     normalized = []
+    excluded_count = 0
     page = 1
 
     while True:
@@ -117,6 +149,11 @@ def fetch_tickets(creds, start_date, page_size=1000):
             break
 
         for t in batch:
+            board = t.get("board") or {}
+            if is_board_excluded(board.get("id"), board.get("name"), excluded_boards):
+                excluded_count += 1
+                continue
+
             company = t.get("company") or {}
             cid = company.get("id")
             if cid is None:
@@ -132,7 +169,7 @@ def fetch_tickets(creds, start_date, page_size=1000):
             break
         page += 1
 
-    return normalized
+    return normalized, excluded_count
 
 
 # ---------------------------------------------------------------------------
@@ -142,17 +179,39 @@ def fetch_tickets(creds, start_date, page_size=1000):
 def main():
     parser = argparse.ArgumentParser(description="Thread Ticket Volume Report — ConnectWise Manage")
     parser.add_argument("--days", type=int, default=90, help="Lookback window in days (default: 90)")
+    parser.add_argument(
+        "--exclude-boards", type=str, default=None,
+        help="Comma-separated list of Service Board names and/or IDs to exclude "
+             "(e.g. an automated-alerts board that shouldn't count as a real ticket)"
+    )
+    parser.add_argument(
+        "--list-boards", action="store_true",
+        help="List all Service Boards with their IDs and exit (use this to find "
+             "values for --exclude-boards)"
+    )
     args = parser.parse_args()
 
     print("Thread Ticket Volume Report Tool — ConnectWise Manage")
     print("This runs locally. Your credentials and ticket data never leave this machine.\n")
 
     creds = load_credentials()
+
+    if args.list_boards:
+        boards = fetch_boards(creds)
+        print("\nService Boards in this ConnectWise instance:")
+        for b in sorted(boards, key=lambda b: (b["name"] or "").lower()):
+            print(f"  {b['id']:>6}  {b['name']}")
+        return
+
+    excluded_boards = parse_board_exclusions(args.exclude_boards)
     start_date = datetime.now(timezone.utc) - timedelta(days=args.days)
 
     print(f"\nFetching tickets since {start_date.strftime('%Y-%m-%d')}...")
-    normalized_tickets = fetch_tickets(creds, start_date)
-    print(f"Retrieved {len(normalized_tickets)} tickets.\n")
+    normalized_tickets, excluded_count = fetch_tickets(creds, start_date, excluded_boards=excluded_boards)
+    print(f"Retrieved {len(normalized_tickets)} tickets.")
+    if excluded_boards:
+        print(f"Excluded {excluded_count} tickets from board(s): {args.exclude_boards}")
+    print()
 
     counts, names = aggregate_by_customer(normalized_tickets)
     rows, mapping = anonymize(counts, names)

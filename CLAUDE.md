@@ -59,7 +59,20 @@ implemented and validated against live instances:
   confirmed to work, since HaloPSA splits authorization across two
   separate layers (the API Application's own enabled permissions, and the
   assigned Agent's Role/data visibility scope) that must both be
-  configured correctly.
+  configured correctly. A Role with zero Teams and zero Departments
+  assigned reads tickets/customers fine (via "Membership level to all
+  Departments: View all") but makes `GET api/Team` return an empty list
+  for that Agent — discovered while validating `--list-boards` against a
+  live demo instance. Fix: assign just one Team *or* one Department to
+  the Role (either works, and assigning only one is enough to unlock the
+  *full* team list in the response — not just that one).
+- `connectwise/README.md`'s security role needs a third permission beyond
+  ticket/company reading: **System > Table Setup** (Inquire = All, with
+  "Service / Service Board" allow-listed under that permission's
+  Customize screen) — without it, `fetch_boards()` (`--list-boards`) gets
+  a 403 even though ticket fetching works fine. Discovered when validating
+  `--list-boards` against a live demo instance whose role only had the
+  original two permissions.
 - `autotask/README.md` documents that Autotask's default "API User
   (system) (API-only)" security level is full-admin and can't be edited
   directly — a genuinely read-only setup requires copying it and
@@ -106,6 +119,31 @@ CSV writing is PSA-agnostic and already implemented in
   `thread_ticket_report.csv`
 - `write_local_mapping(mapping, out_path=...)` → writes
   `local_only_customer_mapping.csv`
+- `parse_board_exclusions(raw)` → parses a `--exclude-boards` value into a
+  lowercased token set
+- `is_board_excluded(board_id, board_name, excluded)` → True if a ticket's
+  board/queue/team matches an excluded token by numeric ID or by name
+  (case-insensitive)
+
+### Board/queue/team exclusion
+
+Every connector supports `--exclude-boards` (comma-separated board/queue/team
+names and/or numeric IDs — mixing both in one list is fine) and `--list-boards`
+(prints every board/queue/team with its ID, then exits) so a prospect can
+exclude boards that only receive automated alerts rather than real customer
+tickets. Each PSA models this concept differently, so each connector resolves
+it independently before calling the shared `is_board_excluded()` helper:
+
+- ConnectWise: board id/name are already present per-ticket (`board/id`,
+  `board/name` added to the tickets `fields` query param); `fetch_boards()`
+  hits `service/boards` for `--list-boards`.
+- Autotask: tickets only carry a numeric `queueID`; queue *names* come from
+  the picklist values on `Tickets/entityInformation/fields` (`fetch_queues()`),
+  a separate, simpler lookup than the flaky company-name resolution below —
+  excluding by ID or by name costs the same one extra API call either way.
+- HaloPSA: tickets already carry both `team_id` and `team` (name) directly,
+  so no extra API call is needed to filter; `fetch_teams()` hits `api/Team`
+  only for `--list-boards`.
 
 ### The two-file output split is deliberate and load-bearing
 

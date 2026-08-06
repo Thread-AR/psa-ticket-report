@@ -69,6 +69,31 @@ def write_report(rows, days, psa_name, out_path="thread_ticket_report.csv"):
     return out_path
 
 
+def parse_board_exclusions(raw):
+    """
+    Parses a --exclude-boards value ("Alerts,42,Automated Monitoring") into
+    a set of lowercased tokens. Each token is matched against both a
+    board/queue/team's numeric ID and its name — see is_board_excluded().
+    """
+    if not raw:
+        return set()
+    return {token.strip().lower() for token in raw.split(",") if token.strip()}
+
+
+def is_board_excluded(board_id, board_name, excluded):
+    """
+    True if a ticket's board/queue/team matches any entry in the
+    --exclude-boards set, by numeric ID or by name (case-insensitive).
+    """
+    if not excluded:
+        return False
+    if board_id is not None and str(board_id).lower() in excluded:
+        return True
+    if board_name and board_name.strip().lower() in excluded:
+        return True
+    return False
+
+
 def write_local_mapping(mapping, out_path="local_only_customer_mapping.csv"):
     """
     Writes the real-name mapping. This file stays on the prospect's

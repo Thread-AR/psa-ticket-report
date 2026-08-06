@@ -79,7 +79,33 @@ ahead of time to skip the prompts — `AUTOTASK_USERNAME`, `AUTOTASK_SECRET`,
 `AUTOTASK_INTEGRATION_CODE`. The syntax for this differs by OS/shell, so
 if you're not sure, just skip this and answer the prompts instead.)
 
-## 4. Output
+## 4. Excluding queues (optional)
+
+If any ticket Queues only receive automated alerts (RMM/monitoring
+tickets, not real customer requests), exclude them so they don't inflate
+the ticket counts:
+
+```
+python3 autotask_ticket_report.py --list-boards
+```
+
+This prints every ticket Queue with its ID, e.g.:
+
+```
+     8  Automated Alerts
+     1  Help Desk
+     6  Onboarding
+```
+
+Then re-run with `--exclude-boards`, using either the name or the ID
+(comma-separate multiple queues; mixing names and IDs is fine):
+
+```
+python3 autotask_ticket_report.py --days 90 --exclude-boards "Automated Alerts"
+python3 autotask_ticket_report.py --days 90 --exclude-boards "8,Onboarding"
+```
+
+## 5. Output
 
 - `thread_ticket_report.csv` — anonymized, safe to share with your Thread rep
 - `local_only_customer_mapping.csv` — real customer names behind each label.

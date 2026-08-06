@@ -30,10 +30,16 @@ truncates both the Member Name (30 char limit) and Security Role name
 
 1. In ConnectWise Manage, go to **System > Members > API Members**
 2. Add a new API member using the naming above
-3. Create/assign a security role using the naming above, with exactly two
+3. Create/assign a security role using the naming above, with exactly these
    non-None permissions — everything else should stay at **None**:
    - **Companies > Company Maintenance**: Inquire = **All**
    - **Service Desk > Service Tickets**: Inquire = **All**
+   - **System > Table Setup**: Inquire = **All** — required only for
+     `--list-boards` / `--exclude-boards` (reading Service Board names).
+     After enabling it, click **Customize** and make sure **Service /
+     Service Board** is checked under "Allow access to these columns" —
+     without this, board lookups fail with a 403 even though Table Setup
+     itself is enabled.
 4. Under that member, go to **API Keys** and generate a Public/Private key pair
 
 You'll end up with three values: Company ID, Public Key, Private Key,
@@ -75,7 +81,33 @@ ahead of time to skip the prompts — `CW_COMPANY_ID`, `CW_PUBLIC_KEY`,
 so if you're not sure, just skip this and answer the prompts instead.
 `CW_CLIENT_ID` isn't needed either way — it's built into the script.)
 
-## 3. Output
+## 3. Excluding boards (optional)
+
+If any Service Boards only receive automated alerts (RMM/monitoring
+tickets, not real customer requests), exclude them so they don't inflate
+the ticket counts:
+
+```
+python3 cw_ticket_report.py --list-boards
+```
+
+This prints every Service Board with its ID, e.g.:
+
+```
+     5  Automated Alerts
+     1  Help Desk
+     3  Onboarding
+```
+
+Then re-run with `--exclude-boards`, using either the name or the ID
+(comma-separate multiple boards; mixing names and IDs is fine):
+
+```
+python3 cw_ticket_report.py --days 90 --exclude-boards "Automated Alerts"
+python3 cw_ticket_report.py --days 90 --exclude-boards "5,Onboarding"
+```
+
+## 4. Output
 
 - `thread_ticket_report.csv` — anonymized, safe to share with your Thread rep
 - `local_only_customer_mapping.csv` — real customer names behind each label.

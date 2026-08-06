@@ -22,7 +22,14 @@ import requests
 # Allow running this script directly from the autotask/ folder while
 # still reaching shared/report_utils.py one level up.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from shared.report_utils import aggregate_by_customer, anonymize, write_report, write_local_mapping
+from shared.report_utils import (
+    aggregate_by_customer,
+    anonymize,
+    write_report,
+    write_local_mapping,
+    parse_board_exclusions,
+    is_board_excluded,
+)
 
 
 ZONE_LOOKUP_URL = "https://webservices.autotask.net/atservicesrest/v1.0/zoneInformation"
@@ -125,6 +132,49 @@ def fetch_tickets(creds, base_url, start_date, page_size=500):
     return tickets
 
 
+def fetch_queues(creds, base_url):
+    """
+    Returns every Ticket Queue as [{"id": ..., "name": ...}, ...]. Autotask
+    doesn't expose a standalone Queues entity — queue names live as
+    picklist values on the Ticket entity's queueID field, retrieved via
+    entity field metadata. Used by --list-boards (to help a prospect find
+    the queue to exclude) and to resolve queue names for --exclude-boards
+    matching by name.
+    """
+    headers = build_auth_headers(creds)
+    url = f"{base_url}/v1.0/Tickets/entityInformation/fields"
+    resp = requests.get(url, headers=headers, timeout=30)
+    resp.raise_for_status()
+
+    fields = resp.json().get("fields", [])
+    queue_field = next((f for f in fields if f.get("name") == "queueID"), None)
+    if not queue_field:
+        return []
+    return [
+        {"id": v["value"], "name": v.get("label")}
+        for v in queue_field.get("picklistValues", [])
+    ]
+
+
+def filter_tickets_by_board(raw_tickets, excluded_boards, queue_names):
+    """
+    Drops tickets whose queueID matches excluded_boards (by ID or by name,
+    via the queue_names id->name lookup). Returns (kept_tickets, excluded_count).
+    """
+    if not excluded_boards:
+        return raw_tickets, 0
+
+    kept = []
+    excluded_count = 0
+    for t in raw_tickets:
+        qid = t.get("queueID")
+        if is_board_excluded(qid, queue_names.get(qid), excluded_boards):
+            excluded_count += 1
+            continue
+        kept.append(t)
+    return kept, excluded_count
+
+
 def fetch_company_names(creds, base_url, company_ids):
     """
     Resolves company (customer) display names for a set of companyIDs.
@@ -157,20 +207,45 @@ def fetch_company_names(creds, base_url, company_ids):
 def main():
     parser = argparse.ArgumentParser(description="Thread Ticket Volume Report — Autotask")
     parser.add_argument("--days", type=int, default=90, help="Lookback window in days (default: 90)")
+    parser.add_argument(
+        "--exclude-boards", type=str, default=None,
+        help="Comma-separated list of ticket Queue names and/or IDs to exclude "
+             "(e.g. an automated-alerts queue that shouldn't count as a real ticket)"
+    )
+    parser.add_argument(
+        "--list-boards", action="store_true",
+        help="List all ticket Queues with their IDs and exit (use this to find "
+             "values for --exclude-boards)"
+    )
     args = parser.parse_args()
 
     print("Thread Ticket Volume Report Tool — Autotask")
     print("This runs locally. Your credentials and ticket data never leave this machine.\n")
 
     creds = load_credentials()
-    start_date = datetime.now(timezone.utc) - timedelta(days=args.days)
 
     print("\nResolving your Autotask zone...")
     base_url = get_zone_base_url(creds)
 
+    if args.list_boards:
+        queues = fetch_queues(creds, base_url)
+        print("\nTicket Queues in this Autotask instance:")
+        for q in sorted(queues, key=lambda q: (q["name"] or "").lower()):
+            print(f"  {q['id']:>6}  {q['name']}")
+        return
+
+    excluded_boards = parse_board_exclusions(args.exclude_boards)
+    start_date = datetime.now(timezone.utc) - timedelta(days=args.days)
+
     print(f"Fetching tickets since {start_date.strftime('%Y-%m-%d')}...")
     raw_tickets = fetch_tickets(creds, base_url, start_date)
-    print(f"Retrieved {len(raw_tickets)} tickets.\n")
+    print(f"Retrieved {len(raw_tickets)} tickets.")
+
+    if excluded_boards:
+        queue_names = {q["id"]: q["name"] for q in fetch_queues(creds, base_url)}
+        raw_tickets, excluded_count = filter_tickets_by_board(raw_tickets, excluded_boards, queue_names)
+        print(f"Excluded {excluded_count} tickets from queue(s): {args.exclude_boards}")
+    print()
 
     company_ids = {t["companyID"] for t in raw_tickets if t.get("companyID") is not None}
     print(f"Resolving names for {len(company_ids)} companies...")

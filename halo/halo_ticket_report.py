@@ -22,7 +22,14 @@ import requests
 # Allow running this script directly from the halo/ folder while
 # still reaching shared/report_utils.py one level up.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from shared.report_utils import aggregate_by_customer, anonymize, write_report, write_local_mapping
+from shared.report_utils import (
+    aggregate_by_customer,
+    anonymize,
+    write_report,
+    write_local_mapping,
+    parse_board_exclusions,
+    is_board_excluded,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -83,11 +90,31 @@ def get_access_token(creds):
     return token
 
 
-def fetch_tickets(creds, token, start_date, page_size=100):
+def fetch_teams(creds, token):
+    """
+    Returns every Team as [{"id": ..., "name": ...}, ...]. Used by
+    --list-boards to help a prospect find the team to exclude (e.g. an
+    automated-alerts team that shouldn't count as a real ticket).
+    """
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
+    resp = requests.get(f"{creds['base_url']}/api/Team", headers=headers, timeout=30)
+    resp.raise_for_status()
+    body = resp.json()
+    teams = body.get("teams") if isinstance(body, dict) else body
+    return [{"id": t.get("id"), "name": t.get("name")} for t in (teams or [])]
+
+
+def fetch_tickets(creds, token, start_date, excluded_boards=None, page_size=100):
     """
     Pulls tickets opened on/after start_date, paginating through results,
     and normalizes each into {"customer_id": ..., "customer_name": ...}
-    for the shared aggregation logic.
+    for the shared aggregation logic. Tickets whose team matches
+    excluded_boards (by ID or name) are dropped before normalization.
+
+    Returns (normalized_tickets, excluded_count).
     """
     headers = {
         "Authorization": f"Bearer {token}",
@@ -96,6 +123,7 @@ def fetch_tickets(creds, token, start_date, page_size=100):
     tickets_url = f"{creds['base_url']}/api/Tickets"
 
     normalized = []
+    excluded_count = 0
     page = 1
 
     while True:
@@ -127,6 +155,10 @@ def fetch_tickets(creds, token, start_date, page_size=100):
             break
 
         for t in batch:
+            if is_board_excluded(t.get("team_id"), t.get("team"), excluded_boards):
+                excluded_count += 1
+                continue
+
             cid = t.get("client_id")
             if cid is None:
                 continue
@@ -141,7 +173,7 @@ def fetch_tickets(creds, token, start_date, page_size=100):
             break
         page += 1
 
-    return normalized
+    return normalized, excluded_count
 
 
 # ---------------------------------------------------------------------------
@@ -151,20 +183,42 @@ def fetch_tickets(creds, token, start_date, page_size=100):
 def main():
     parser = argparse.ArgumentParser(description="Thread Ticket Volume Report — HaloPSA")
     parser.add_argument("--days", type=int, default=90, help="Lookback window in days (default: 90)")
+    parser.add_argument(
+        "--exclude-boards", type=str, default=None,
+        help="Comma-separated list of Team names and/or IDs to exclude "
+             "(e.g. an automated-alerts team that shouldn't count as a real ticket)"
+    )
+    parser.add_argument(
+        "--list-boards", action="store_true",
+        help="List all Teams with their IDs and exit (use this to find "
+             "values for --exclude-boards)"
+    )
     args = parser.parse_args()
 
     print("Thread Ticket Volume Report Tool — HaloPSA")
     print("This runs locally. Your credentials and ticket data never leave this machine.\n")
 
     creds = load_credentials()
-    start_date = datetime.now(timezone.utc) - timedelta(days=args.days)
 
     print("\nAuthenticating...")
     token = get_access_token(creds)
 
+    if args.list_boards:
+        teams = fetch_teams(creds, token)
+        print("\nTeams in this HaloPSA instance:")
+        for t in sorted(teams, key=lambda t: (t["name"] or "").lower()):
+            print(f"  {t['id']:>6}  {t['name']}")
+        return
+
+    excluded_boards = parse_board_exclusions(args.exclude_boards)
+    start_date = datetime.now(timezone.utc) - timedelta(days=args.days)
+
     print(f"Fetching tickets since {start_date.strftime('%Y-%m-%d')}...")
-    normalized_tickets = fetch_tickets(creds, token, start_date)
-    print(f"Retrieved {len(normalized_tickets)} tickets.\n")
+    normalized_tickets, excluded_count = fetch_tickets(creds, token, start_date, excluded_boards=excluded_boards)
+    print(f"Retrieved {len(normalized_tickets)} tickets.")
+    if excluded_boards:
+        print(f"Excluded {excluded_count} tickets from team(s): {args.exclude_boards}")
+    print()
 
     counts, names = aggregate_by_customer(normalized_tickets)
     rows, mapping = anonymize(counts, names)

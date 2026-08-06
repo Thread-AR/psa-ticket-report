@@ -28,8 +28,13 @@ that it's safe to remove once the report's generated):
 5. Assign that agent a custom Role with this exact configuration:
 
    **Departments & Teams tab**
-   - Teams: none
-   - Departments: none
+   - Teams / Departments: leaving both fully empty works fine for ticket
+     and customer reading, but breaks `--list-boards` — `GET api/Team`
+     returns an empty list for this Agent no matter what. The fix is to
+     assign **just one** Team *or* one Department (either is enough,
+     doesn't matter which) — e.g. your main support department. Oddly,
+     assigning a single item unlocks the *full* team list in the
+     response; you don't need to assign every team/department.
    - Membership level to all Departments: **View all** (can view all
      tickets in all departments)
 
@@ -76,7 +81,33 @@ you're not sure, just skip this and answer the prompts instead.
 set `HALO_TENANT` if your instance uses a shared multi-tenant auth server
 (uncommon), and `HALO_SCOPE` defaults to `all`.)
 
-## 3. Output
+## 3. Excluding teams (optional)
+
+If any Teams only receive automated alerts (RMM/monitoring tickets, not
+real customer requests), exclude them so they don't inflate the ticket
+counts:
+
+```
+python3 halo_ticket_report.py --list-boards
+```
+
+This prints every Team with its ID, e.g.:
+
+```
+     5  Automated Alerts
+     1  Help Desk
+     3  Onboarding
+```
+
+Then re-run with `--exclude-boards`, using either the name or the ID
+(comma-separate multiple teams; mixing names and IDs is fine):
+
+```
+python3 halo_ticket_report.py --days 90 --exclude-boards "Automated Alerts"
+python3 halo_ticket_report.py --days 90 --exclude-boards "5,Onboarding"
+```
+
+## 4. Output
 
 - `thread_ticket_report.csv` — anonymized, safe to share with your Thread rep
 - `local_only_customer_mapping.csv` — real customer names behind each label.
