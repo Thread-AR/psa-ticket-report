@@ -57,7 +57,10 @@ class Api:
     # -- Report run --------------------------------------------------------
 
     def run_report(self, psa_key, creds, days, excluded_boards, output_dir):
+        lines = []
+
         def on_line(line):
+            lines.append(line)
             self._push_log(line)
 
         try:
@@ -68,7 +71,9 @@ class Api:
             return {"ok": False, "error": str(e)}
 
         if result["returncode"] != 0:
-            return {"ok": False, "error": "The script exited with an error. See the log above."}
+            tail = "\n".join(line for line in lines[-8:] if line.strip())
+            error = tail or "The script exited with an error, but produced no output."
+            return {"ok": False, "error": error}
 
         return {
             "ok": True,

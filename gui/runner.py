@@ -40,6 +40,13 @@ if sys.platform == "win32":
 def _build_env(creds):
     env = dict(os.environ)
     env.update({k: v for k, v in creds.items() if v is not None})
+    # Force the connector subprocess to write UTF-8 to its stdout pipe
+    # regardless of the OS locale/codepage. Without this, a script that
+    # prints a non-ASCII character (e.g. the em dash in its startup
+    # banner) can raise UnicodeEncodeError on a Windows machine whose
+    # ANSI codepage doesn't cover that character, since a piped (non-
+    # console) stdout otherwise falls back to locale.getpreferredencoding().
+    env["PYTHONIOENCODING"] = "utf-8"
     return env
 
 
@@ -71,7 +78,8 @@ class ConnectorRunner:
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
+                encoding="utf-8",
+                errors="replace",
                 env=env,
                 timeout=timeout,
                 **_POPEN_KWARGS,
@@ -128,7 +136,8 @@ class ConnectorRunner:
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
+                encoding="utf-8",
+                errors="replace",
                 bufsize=1,
                 cwd=output_dir,
                 env=env,
