@@ -103,11 +103,12 @@ def fetch_tickets(creds, base_url, start_date, page_size=500):
 
     tickets = []
     while url:
-        if body is not None:
-            resp = requests.post(url, headers=headers, json=body, timeout=30)
-        else:
-            # Subsequent pages: nextPageUrl is a complete, ready-to-use GET URL.
-            resp = requests.get(url, headers=headers, timeout=30)
+        # Autotask's pagination contract: continue with the same HTTP method
+        # as the initial request. The first call is a POST (to send the
+        # filter body), so nextPageUrl must also be POSTed — with an empty
+        # body, since the paging cursor is embedded in the URL's query
+        # string itself. A GET here 405s.
+        resp = requests.post(url, headers=headers, json=body, timeout=30)
 
         if resp.status_code == 401:
             raise SystemExit(
@@ -127,7 +128,7 @@ def fetch_tickets(creds, base_url, start_date, page_size=500):
         print(f"  fetched page ({len(batch)} tickets, {len(tickets)} total so far)")
 
         url = (page.get("pageDetails") or {}).get("nextPageUrl")
-        body = None
+        body = {}
 
     return tickets
 
