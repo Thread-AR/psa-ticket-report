@@ -281,6 +281,43 @@ function enterReviewScreen() {
 }
 
 // ---------------------------------------------------------------------
+// Copy-to-clipboard helper
+// ---------------------------------------------------------------------
+
+function copyText(text, btnEl) {
+  const fallbackCopy = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (e) {
+      // Nothing more we can do — the user can still select the text by hand.
+    }
+    document.body.removeChild(ta);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+
+  if (btnEl) {
+    const original = btnEl.textContent;
+    btnEl.textContent = "Copied!";
+    btnEl.disabled = true;
+    setTimeout(() => {
+      btnEl.textContent = original;
+      btnEl.disabled = false;
+    }, 1200);
+  }
+}
+
+// ---------------------------------------------------------------------
 // Screen: Run + Done/Error
 // ---------------------------------------------------------------------
 
@@ -378,6 +415,11 @@ function wireEvents() {
   $("#outputContinue").addEventListener("click", enterReviewScreen);
   $("#generateBtn").addEventListener("click", generateReport);
   $("#openFolderBtn").addEventListener("click", () => api().open_folder(state.outputDir));
+
+  $("#copyLogBtn").addEventListener("click", (e) => copyText($("#logPanel").textContent, e.target));
+  $("#copyErrorBtn").addEventListener("click", (e) => copyText($("#errorMessage").textContent, e.target));
+  $("#copyReportPathBtn").addEventListener("click", (e) => copyText($("#reportPathDisplay").textContent, e.target));
+  $("#copyMappingPathBtn").addEventListener("click", (e) => copyText($("#mappingPathDisplay").textContent, e.target));
 }
 
 async function init() {

@@ -418,3 +418,36 @@ input[type="number"] { max-width: 140px; }
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+
+.result-path-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.result-path-row .result-path {
+  flex: 1;
+}
+
+.log-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.btn-copy {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--slate);
+  background: var(--paper);
+  color: var(--forrest-green);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-copy:hover { border-color: var(--mountain-meadow); }
+.btn-copy:disabled { opacity: 0.6; cursor: default; }

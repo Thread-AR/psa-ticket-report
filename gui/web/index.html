@@ -98,6 +98,9 @@
     <section class="screen" data-screen="run">
       <h1 id="runTitle">Generating your report&hellip;</h1>
       <p class="lede">This can take a few minutes for a large ticket volume.</p>
+      <div class="log-toolbar">
+        <button class="btn btn-copy" id="copyLogBtn" type="button">Copy log</button>
+      </div>
       <pre class="log-panel" id="logPanel"></pre>
     </section>
 
@@ -108,11 +111,17 @@
         <div class="result-card">
           <div class="result-row">
             <div class="result-label">Share with your Thread rep</div>
-            <div class="result-path" id="reportPathDisplay"></div>
+            <div class="result-path-row">
+              <div class="result-path" id="reportPathDisplay"></div>
+              <button class="btn btn-copy" id="copyReportPathBtn" type="button">Copy</button>
+            </div>
           </div>
           <div class="result-row">
             <div class="result-label">Keep this one to yourself — never share it</div>
-            <div class="result-path" id="mappingPathDisplay"></div>
+            <div class="result-path-row">
+              <div class="result-path" id="mappingPathDisplay"></div>
+              <button class="btn btn-copy" id="copyMappingPathBtn" type="button">Copy</button>
+            </div>
           </div>
         </div>
         <div class="nav-row">
@@ -123,6 +132,9 @@
       <div id="doneError" style="display:none;">
         <h1>Something went wrong</h1>
         <p class="lede">The script exited with an error. Last output:</p>
+        <div class="log-toolbar">
+          <button class="btn btn-copy" id="copyErrorBtn" type="button">Copy error</button>
+        </div>
         <pre class="log-panel" id="errorMessage"></pre>
         <div class="nav-row">
           <button class="btn btn-ghost" data-action="back-to-review">Back</button>

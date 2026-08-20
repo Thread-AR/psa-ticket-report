@@ -50,11 +50,15 @@ that it's safe to remove once the report's generated):
    **Custom (Internal Integration)** (self-service, no Datto/Autotask
    approval needed — the "Vendor" identifier type is for published
    marketplace integrations and doesn't apply here). Give it an internal
-   name and tracking identifier, e.g. `Thread Ticket Report`.
+   name describing its purpose, e.g. `Thread Ticket Report` — the actual
+   tracking identifier value is generated automatically once you save; you
+   don't type it in yourself.
 5. **Save & Close.**
 
-You'll end up with three values: Username (Key), Secret, and API
-Integration Code (Tracking Identifier).
+You'll end up with three values: Username (Key), Secret (both
+system-generated), and API Integration Code / Tracking Identifier
+(auto-generated once you select Custom (Internal Integration) — the name
+you give it is just a label, not the value itself).
 
 ## 3. Run it
 
