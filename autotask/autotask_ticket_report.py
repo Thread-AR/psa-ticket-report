@@ -104,10 +104,13 @@ def fetch_tickets(creds, base_url, start_date, page_size=500):
     tickets = []
     while url:
         # Autotask's pagination contract: continue with the same HTTP method
-        # as the initial request. The first call is a POST (to send the
-        # filter body), so nextPageUrl must also be POSTed — with an empty
-        # body, since the paging cursor is embedded in the URL's query
-        # string itself. A GET here 405s.
+        # AND the same original filter body on every paging call — its docs
+        # say "do not change the query method... or any filter criteria
+        # while using paging URLs" and "you should only provide the
+        # original filter when calling them." The paging cursor itself
+        # lives in nextPageUrl's query string, not the body. A GET here
+        # 405s, and an empty body on page 2+ silently violates "original
+        # filter" above.
         resp = requests.post(url, headers=headers, json=body, timeout=30)
 
         if resp.status_code == 401:
@@ -128,7 +131,6 @@ def fetch_tickets(creds, base_url, start_date, page_size=500):
         print(f"  fetched page ({len(batch)} tickets, {len(tickets)} total so far)")
 
         url = (page.get("pageDetails") or {}).get("nextPageUrl")
-        body = {}
 
     return tickets
 
